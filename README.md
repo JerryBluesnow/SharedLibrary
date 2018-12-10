@@ -1,29 +1,47 @@
 
-
 # 1. Reference Link
 
-[Linux系统中“动态库”和“静态库”那点事儿](http://blog.jobbole.com/107977/)
+    [Linux系统中“动态库”和“静态库”那点事儿](http://blog.jobbole.com/107977/)
 
-[Linux如何解决动态库的版本控制](https://my.oschina.net/qyh/blog/54672)
+    [Linux如何解决动态库的版本控制](https://my.oschina.net/qyh/blog/54672)
 
-[LINUX总结第13篇：LINUX下动态库及版本号控制](https://blog.csdn.net/alspwx/article/details/36655645)
+    [LINUX总结第13篇：LINUX下动态库及版本号控制](https://blog.csdn.net/alspwx/article/details/36655645)
 
-[Linux程序编译链接动态库版本的问题](https://blog.csdn.net/littlewhite1989/article/details/47726011)
+    [Linux程序编译链接动态库版本的问题](https://blog.csdn.net/littlewhite1989/article/details/47726011)
 
-[linux共享库的版本控制和使用](http://lovewubo.github.io/shared_library)
+    [linux共享库的版本控制和使用](http://lovewubo.github.io/shared_library)
 
-[Linux下Gcc生成和使用静态库和动态库详解](http://www.cppblog.com/deane/articles/165216.html)
+    [Linux下Gcc生成和使用静态库和动态库详解](http://www.cppblog.com/deane/articles/165216.html)
 
 # 2. Terminology
 
     ELF - 在Linux操作系统中，普遍使用ELF格式作为可执行程序或者程序生成过程中的中间格式。ELF（Executable and Linking Format，可执行连接格式）是UNIX系统实验室（USL）作为应用程序二进制接口（Application BinaryInterface，ABI）而开发和发布的。
 
-    shared library
-        soname      - 别名(Short for shared object name)                - libtest.so.0
-        realname    - 真名(realname)                                    - libcrypto.so.0.0.1
-        linker name - 链接名(linker name)                               - libtest.so 
+    Shared Library  -
+        soname      - 别名(Short for shared object name)    - libtest.so.0
+        realname    - 真名(realname)                        - libcrypto.so.0.0.1
+        linker name - 链接名(linker name)                   - libtest.so 
 
-# 3. 
+# 3. Interpretation
+
+##  ELF文件格式包括三种主要的类型：可执行文件、可重定向文件、共享库。
+    1．可执行文件（应用程序）
+
+    可执行文件包含了代码和数据，是可以直接运行的程序。
+
+    2．可重定向文件（*.o）
+
+    可重定向文件又称为目标文件，它包含了代码和数据（这些数据是和其他重定位文件和共享的object文件一起连接时使用的）。
+
+    *.o文件参与程序的连接（创建一个程序）和程序的执行（运行一个程序），它提供了一个方便有效的方法来用并行的视角看待文件的内容，这些*.o文件的活动可以反映出不同的需要。
+
+    3．共享文件（*.so）
+
+    动态库文件，它包含了代码和数据（这些数据是在连接时候被连接器ld和运行时动态连接器使用的）。
+
+    一个ELF文件从连接器（Linker）的角度看，是一些节的集合；从程序加载器（Loader）的角度看，它是一些段（Segments）的集合。ELF格式的程序和共享库具有相同的结构，只是段的集合和节的集合上有些不同。
+
+##  Shared Library
     realname    - 第一个是共享库本身的文件名（real name），其通常包含版本号，常常是是这样： libmath.so.1.1.1234 。 lib是Linux 上的库的约定前缀，math 是共享库名字，so 是共享库的后缀名，1.1.1234的是共享库的版本号，其主版本号+小版本号+build号。主版本号，代表当前动态库的版本，如果动态库的接口有变化，那么这个版本号就要加1；后面的两个版本号（小版本号 和 build 号）是告诉你详细的信息，比如为一个hot-fix 而生成的一个版本，其小版本号加1，build号也应有变化。 这个文件名包含共享库的代码。
 
     soname      - 其是应用程序加载dll 时候，其寻找共享库用的文件名。 don't care of “minor build version or build version” when no API update.
@@ -34,17 +52,18 @@
 
     ldconifg    - Linux 系统提供一个命令 ldconifg 专门为生成共享库的soname 文件，以便程序在加载时后通过soname 找到共享库。 同时该命令也为加速加载共享库，把系统的共享库放到一个缓存文件中，这样可以提高查找速度。可以用下面命令看一下系统已有的被缓存起来的共享库.
 
-    3.共享库，小版本升级，即接口不变.
+### 共享库，小版本升级，即接口不变.
 
-   当升级小版本时，共享库的soname 是不变的，所以需要重新把soname 的那个连接文件指定新版本就可以。 调用ldconfig命令，系统会帮你做修改那个soname link文件，并把它指向新的版本呢。这时候你的应用程序就自动升级了。
+    当升级小版本时，共享库的soname 是不变的，所以需要重新把soname 的那个连接文件指定新版本就可以。 调用ldconfig命令，系统会修改那个soname link文件，并把它指向新的版本呢。这时候应用程序就自动升级了。
 
-    4.共享库，主版本升级，即接口发生变化。
+### 共享库，主版本升级，即接口发生变化。
 
-    当升级主版本时，共享库的soname 就会加1.比如libhello.so.0.0.0 变为 libhello.so.1.0.0. 这时候再运行ldconfig 文件，就会发现生成两个连接 文件。
+    当升级主版本时，共享库的soname 就会加1。比如libhello.so.0.0.0 变为 libhello.so.1.0.0. 这时候再运行ldconfig 文件，就会发现生成两个连接文件。
 
     ln -s libhello.so.0---->libhello.so.0.0.0
 
     ln -s libhello.so.1----->libhello.so.1.0.0
+
     尽管共享库升级，但是你的程序依旧用的是旧的共享库，并且两个之间不会相互影响。
 
     问题是如果更新的共享库只是增加一些接口，并没有修改已有的接口，也就是向前兼容。但是这时候它的主版本号却增加1. 如果你的应用程序想调用新的共享库，该怎么办？ 简单，只要手工把soname 文件修改，使其指向新的版本就可以。（这时候ldconfig 文件不会帮你做这样的事，因为这时候soname 和real name 的版本号主板本号不一致，只能手动修改）
@@ -53,7 +72,9 @@
 
     但是有时候，主版本号增加，接口发生变化，可能向前不兼容。这时候再这样子修改，就会报错，“xx”方法找不到之类的错误。
 
-    总结一下，Linux 系统是通过共享库的三个不同名字，来管理共享库的多个版本。 real name 就是共享库的实际文件名字，soname 就是共享库加载时的用的文件名。在生成共享库的时候，编译器将soname 绑定到共享库的文件头里，二者关联起来。 在应用程序引用共享库时，其通过link name 来完成，link时将按照系统指定的目录去搜索link名字找到共享库，并将共享库的soname写在应用程序的头文件里。当应用程序加载共享库时，就会通过soname在系统指定的目录（path or LD_LIBRARY)去寻找共享库。
+### Linux 系统是通过共享库的三个不同名字，来管理共享库的多个版本。 
+    
+    real name 就是共享库的实际文件名字，soname 就是共享库加载时的用的文件名。在生成共享库的时候，编译器将soname 绑定到共享库的文件头里，二者关联起来。 在应用程序引用共享库时，其通过link name 来完成，link时将按照系统指定的目录去搜索link名字找到共享库，并将共享库的soname写在应用程序的头文件里。当应用程序加载共享库时，就会通过soname在系统指定的目录（path or LD_LIBRARY)去寻找共享库。
 
     当共享库升级时，分为两种。一种是主板本不变，升级小版本和build 号。在这种情况下，系统会通过更新soname（ ldconfig 来维护），来使用新的版本号。这中情况下，旧版本就没有用，可以删掉。
 
@@ -61,40 +82,38 @@
 
     5.如果编译的时候没有指定，共享库的soname，会怎么样？
 
-    这是一个trick 的地方。第一系统将会在生成库的时候，就没有soname放到库的头里面。从而应用程序连接时候，就把linkname 放到应用程序依赖库里面。或者换句话说就   是，soname这时候不带版本号。 有时候有人直接利用这点来升级应用程序，比如，新版本的库，直接拷贝到系统目录下，就会覆盖掉已经存在的旧的库文件，直接升级。 这个 给程序员很大程度的便利性，如果一步小心，就会调到类似windows的Dll hell 陷阱里面。建议不要这样做。
+    这是一个trick 的地方。第一系统将会在生成库的时候，就没有soname放到库的头里面。从而应用程序连接时候，就把linkname 放到应用程序依赖库里面。或者换句话说就是，soname这时候不带版本号。 有时候有人直接利用这点来升级应用程序，比如，新版本的库，直接拷贝到系统目录下，就会覆盖掉已经存在的旧的库文件，直接升级。 这个 给程序员很大程度的便利性，如果一不小心，就会调到类似windows的Dll hell 陷阱里面。建议不要这样做。
 
-# 3. 
-    ELF文件格式包括三种主要的类型：可执行文件、可重定向文件、共享库。
-    1．可执行文件（应用程序）
+# 4.  ldconfig
 
-    可执行文件包含了代码和数据，是可以直接运行的程序。
+    为了使得动态链接库可以被系统使用，当我们修改了/etc/ld.so.conf或/etc/ld.so.conf.d/目录下的任何文件，或者往那些目录下拷贝了新的动态链接库文件时，都需要运行一个很重要的命令：ldconfig，该命令位于/sbin目录下，主要的用途就是负责搜索/lib和/usr/lib，以及配置文件/etc/ld.so.conf里所列的目录下搜索可用的动态链接库文件，然后创建处动态加载程序/lib/ld-linux.so.2所需要的连接和(默认)缓存文件/etc/ld.so.cache(此文件里保存着已经排好序的动态链接库名字列表)。
 
-    2．可重定向文件（*.o）
+# 5. Practice
 
-    可重定向文件又称为目标文件，它包含了代码和数据（这些数据是和其他重定位文件和共享的object文件一起连接时使用的）。
-
-    *.o文件参与程序的连接（创建一个程序）和程序的执行（运行一个程序），它提供了一个方便有效的方法来用并行的视角看待文件的内 容，这些*.o文件的活动可以反映出不同的需要。
-
-    Linux下，我们可以用gcc -c编译源文件时可将其编译成*.o格式。
-
-    3．共享文件（*.so）
-
-    也称为动态库文件，它包含了代码和数据（这些数据是在连接时候被连接器ld和运行时动态连接器使用的）。动态连接器可能称为  ld.so.1，libc.so.1或者 ld-linux.so.1。我的CentOS6.0系统中该文件为：/lib/ld-2.12.so
-
-
-
-    一个ELF文件从连接器（Linker）的角度看，是一些节的集合；从程序加载器（Loader）的角度看，它是一些段（Segments）的集合。   ELF格式的程序和共享库具有相同的结构，只是段的集合和节的集合上有些不同。
-
-
-4.   为了使得动态链接库可以被系统使用，当我们修改了/etc/ld.so.conf或/etc/ld.so.conf.d/目录下的任何文件，或者往那些目录下拷贝了新的动态链接库文件时，都需要运行一个很重要的命令：ldconfig，该命令位于/sbin目录下，主要的用途就是负责搜索/lib和/usr/lib，以及配置文件/etc/ld.so.conf里所列的目录下搜索可用的动态链接库文件，然后创建处动态加载程序/lib/ld-linux.so.2所需要的连接和(默认)缓存文件/etc/ld.so.cache(此文件里保存着已经排好序的动态链接库名字列表)。
-    
     <qa24a-s00c11h0:root>/etc:
     # vi ld.so.conf
         |
         +---include ld.so.conf.d/*.conf
 
+##  gcc Compiler options
 
-    1 . /jerry/learn/test
+### PIC - position independent code
+    -fPIC 作用于编译阶段，告诉编译器产生与位置无关代码(Position-Independent Code)，则产生的代码中，没有绝对地址，全部使用相对地址，故而代码可以被加载器加载到内存的任意位置，都可以正确的执行。这正是共享库所要求的，共享库被加载时，在内存的位置不是固定的.
+    如果不加-fPIC,则加载.so文件的代码段时,代码段引用的数据对象需要重定位, 重定位会修改代码段的内容,这就造成每个使用这个.so文件代码段的进程在内核里都会生成这个.so文件代码段的copy.每个copy都不一样,取决于 这个.so文件代码段和数据段内存映射的位置.
+    Refer to for more: [gcc编译参数-fPIC的一些问题](http://blog.sina.com.cn/s/blog_54f82cc201011op1.html)
+
+### -W -w -Wall
+    -w的意思是关闭编译时的警告，也就是编译后不显示任何warning，因为有时在编译之后编译器会显示一些例如数据转换之类的警告，这些警告是我们平时可以忽略的。
+    -Wall选项意思是编译后显示所有警告。
+    -W选项类似-Wall，会显示警告，但是只显示编译器认为会出现错误的警告。
+    在编译一些项目的时候可以-W和-Wall选项一起使用。
+
+### -l
+    -l参数就是用来指定程序要链接的库，-l参数紧接着就是库名
+
+### -L    添加链接库的搜索路径
+
+##  A) . /jerry/learn/test
         main.c add.c sub.c tiger.h
         |
         +---gcc -fpic  -c  add.c
@@ -116,7 +135,7 @@
 
                 export will not rebuild the /etc/ld.so.cache
     
-    2 . /jerry/learn/hello
+##  B) . /jerry/learn/hello
         hello.c  hello.h  main.c
 
         1.生成共享库，关联real name 和soname
