@@ -1,17 +1,17 @@
 
 # 1. Reference Link
 
-    [Linux系统中“动态库”和“静态库”那点事儿](http://blog.jobbole.com/107977/)
+[Linux系统中“动态库”和“静态库”那点事儿](http://blog.jobbole.com/107977/)
 
-    [Linux如何解决动态库的版本控制](https://my.oschina.net/qyh/blog/54672)
+[Linux如何解决动态库的版本控制](https://my.oschina.net/qyh/blog/54672)
 
-    [LINUX总结第13篇：LINUX下动态库及版本号控制](https://blog.csdn.net/alspwx/article/details/36655645)
+[LINUX总结第13篇：LINUX下动态库及版本号控制](https://blog.csdn.net/alspwx/article/details/36655645)
 
-    [Linux程序编译链接动态库版本的问题](https://blog.csdn.net/littlewhite1989/article/details/47726011)
+[Linux程序编译链接动态库版本的问题](https://blog.csdn.net/littlewhite1989/article/details/47726011)
 
-    [linux共享库的版本控制和使用](http://lovewubo.github.io/shared_library)
+[linux共享库的版本控制和使用](http://lovewubo.github.io/shared_library)
 
-    [Linux下Gcc生成和使用静态库和动态库详解](http://www.cppblog.com/deane/articles/165216.html)
+[Linux下Gcc生成和使用静态库和动态库详解](http://www.cppblog.com/deane/articles/165216.html)
 
 # 2. Terminology
 
@@ -95,12 +95,16 @@
         |
         +---include ld.so.conf.d/*.conf
 
+    ld.so.cache
+
 ##  gcc Compiler options
 
 ### PIC - position independent code
+
     -fPIC 作用于编译阶段，告诉编译器产生与位置无关代码(Position-Independent Code)，则产生的代码中，没有绝对地址，全部使用相对地址，故而代码可以被加载器加载到内存的任意位置，都可以正确的执行。这正是共享库所要求的，共享库被加载时，在内存的位置不是固定的.
     如果不加-fPIC,则加载.so文件的代码段时,代码段引用的数据对象需要重定位, 重定位会修改代码段的内容,这就造成每个使用这个.so文件代码段的进程在内核里都会生成这个.so文件代码段的copy.每个copy都不一样,取决于 这个.so文件代码段和数据段内存映射的位置.
-    Refer to for more: [gcc编译参数-fPIC的一些问题](http://blog.sina.com.cn/s/blog_54f82cc201011op1.html)
+    Refer to for more: 
+[gcc编译参数-fPIC的一些问题](http://blog.sina.com.cn/s/blog_54f82cc201011op1.html)
 
 ### -W -w -Wall
     -w的意思是关闭编译时的警告，也就是编译后不显示任何warning，因为有时在编译之后编译器会显示一些例如数据转换之类的警告，这些警告是我们平时可以忽略的。
@@ -114,94 +118,95 @@
 ### -L    添加链接库的搜索路径
 
 ##  A) . /jerry/learn/test
-        main.c add.c sub.c tiger.h
-        |
-        +---gcc -fpic  -c  add.c
-            gcc -fpic  -c  sub.c
-        |
-        +---gcc -shared -o libtiger.so add.o sub.o        
-            / gcc -fpic -shared add.c sub.c -o libtiger.so
-
-        |
-        +---gcc -o  main  main.c -L  ./  -ltiger
-
-        ./main
-            ./main: error while loading shared libraries: libtiger.so: cannot open shared object file: No such file or directory
-            |
-            +---ldconfig `pwd`       /     export LD_LIBRARY_PATH=`pwd`:$LD_LIBRARY_PATH
-
-                after running ldconfig `pwd`, you could find the libtiger.h in /etc/ld.so.cache
-                after rerun ldconfig, it the cache file will be rebuilt, and no /jerry/learn/test/libtiger.so was cached in the cache file.
-
-                export will not rebuild the /etc/ld.so.cache
     
+    main.c add.c sub.c tiger.h
+    |
+    +---gcc -fpic  -c  add.c
+        gcc -fpic  -c  sub.c
+    |
+    +---gcc -shared -o libtiger.so add.o sub.o        
+        / gcc -fpic -shared add.c sub.c -o libtiger.so
+
+    |
+    +---gcc -o  main  main.c -L  ./  -ltiger
+    ./main
+        ./main: error while loading shared libraries: libtiger.so: cannot open shared object file: No such file or directory
+        |
+        +---ldconfig `pwd`       /     export LD_LIBRARY_PATH=`pwd`:$LD_LIBRARY_PATH
+
+            after running ldconfig `pwd`, you could find the libtiger.h in /etc/ld.so.cache
+            after rerun ldconfig, it the cache file will be rebuilt, and no /jerry/learn/test/libtiger.so was cached in the cache file.
+
+    export will not rebuild the /etc/ld.so.cache
+
 ##  B) . /jerry/learn/hello
-        hello.c  hello.h  main.c
+    hello.c  hello.h  main.c
 
-        1.生成共享库，关联real name 和soname
-        gcc -g -Wall -fPIC -c hello.c -o hello.o
-        gcc -shared -Wl,-soname=libhello.so.0 -o libhello.so.0.0.0 hello.o
-        gcc -shared -Wl,-soname,libhello.so.0 -o libhello.so.0.0.0 hello.o
-            (-Wl,-soname -Wl 告诉编译器将后面的参数传递到连接器。而 -soname 指定了共享库的soname.如果我们没有设置它的soname,则默认为该共享库的文件名 )
-            ( 执行ldconfig -vn . (有点)，在当前目录县生成soname链接到 libhello.so.0.0.0)
-        root@49efe8bedaf4:/jerry/learn/hello# readelf -d libhello.so.0.0.0 | grep libhello
-        0x000000000000000e (SONAME)             Library soname: [libhello.so.0]
-        (gcc main.c -o main -Wl,-rpath=./ -L. -lhello)
-        2. 应用程序，引用共享库
-        ln -s libhello.so.0.0.0 libhello.so.0
-        ln -s libhello.so.0 libhello.so
-        
-        gcc -g -Wall -c main.c -o main.o -I.
-        gcc  -o main main.o -lhello -L.
-                (指定版本gcc main.c libhello.so.0 -L./ -Wl,-rpath=./ -o main)
+    1.生成共享库，关联real name 和soname
+    gcc -g -Wall -fPIC -c hello.c -o hello.o
+    gcc -shared -Wl,-soname=libhello.so.0 -o libhello.so.0.0.0 hello.o
+    gcc -shared -Wl,-soname,libhello.so.0 -o libhello.so.0.0.0 hello.o
+        |
+        (-Wl,-soname -Wl 告诉编译器将后面的参数传递到连接器。而 -soname 指定了共享库的soname.如果我们没有设置它的soname,则默认为该共享库的文件名 )
+        ( 执行ldconfig -vn . (有点)，在当前目录县生成soname链接到 libhello.so.0.0.0)
 
-        readelf -d main | grep libhello
+    root@49efe8bedaf4:/jerry/learn/hello# readelf -d libhello.so.0.0.0 | grep libhello
+    0x000000000000000e (SONAME)             Library soname: [libhello.so.0]
+    (gcc main.c -o main -Wl,-rpath=./ -L. -lhello)
 
+    2. 应用程序，引用共享库
+    ln -s libhello.so.0.0.0 libhello.so.0
+    ln -s libhello.so.0 libhello.so
+    
+    gcc -g -Wall -c main.c -o main.o -I.
+    gcc  -o main main.o -lhello -L.
+            (指定版本gcc main.c libhello.so.0 -L./ -Wl,-rpath=./ -o main)
 
-        或者：
-        gcc hello.c -fPIC -shared -Wl,-soname,libhello.so.0 -o libhello.so.0.0.1
-        +
-        root@49efe8bedaf4:/jerry/learn/hello# ls
-        hello.c  hello.h  libhello.so.0.0.1  main  main.c
-        +
-        root@49efe8bedaf4:/jerry/learn/hello# ldconfig -n . 
-        root@49efe8bedaf4:/jerry/learn/hello# ls
-        hello.c  hello.h  libhello.so.0  libhello.so.0.0.1  main  main.c
-            | 
-            +---这个软链接是如何生成的呢，并不是截取libhello.so.0.0.1名字的前面部分，而是根据libhello.so.0.0.1编译时指定的-soname生成的。也就是说我们在编译动态库时通过-soname指定的名字，已经记载到了动态库的二进制数据里面。不管程序是否按libxxx.so.a.b.c格式命名，但Linux上几乎所有动态库在编译时都指定了-soname
-        +
-        root@49efe8bedaf4:/jerry/learn/hello# gcc main.c -L. -lhello -o main
-        /usr/bin/ld: cannot find -lhello
-        collect2: error: ld returned 1 exit status
-        + 
-        ln -s libhello.so.0 libhello.so
-        +
-        gcc main.c -L. -lhello -o main
-        +
-        root@49efe8bedaf4:/jerry/learn/hello# gcc main.c -L. -lhello -o main
-        root@49efe8bedaf4:/jerry/learn/hello# ls -l
-        total 32
-        -rw-r--r-- 1 root root   84 Dec  6 08:33 hello.c
-        -rw-r--r-- 1 root root   69 Dec  6 08:32 hello.h
-        lrwxrwxrwx 1 root root   13 Dec 10 07:11 libhello.so -> libhello.so.0
-        lrwxrwxrwx 1 root root   17 Dec 10 07:07 libhello.so.0 -> libhello.so.0.0.1
-        -rwxr-xr-x 1 root root 7904 Dec 10 07:06 libhello.so.0.0.1
-        -rwxr-xr-x 1 root root 8288 Dec 10 07:12 main
-        -rw-r--r-- 1 root root   73 Dec  6 08:34 main.c
-        +
-        root@49efe8bedaf4:/jerry/learn/hello# ldd main
-        linux-vdso.so.1 (0x00007ffdb1bfe000)
-        libhello.so.0 (0x00007f528eed4000)
-        libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f528eadc000)
-        /lib64/ld-linux-x86-64.so.2 (0x00007f528f2e4000)
-        +
-        其实在生成main程序的过程有如下几步:
-        链接器通过编译命令-L. -lhello在当前目录查找libhello.so文件
-        读取libhello.so链接指向的实际文件，这里是libhello.so.0.0.1
-        读取libhello.so.0.0.1中的SONAME，这里是libhello.so.0
-        将libhello.so.0记录到main程序的二进制数据里
+    readelf -d main | grep libhello
 
-        
+    或者：
+    gcc hello.c -fPIC -shared -Wl,-soname,libhello.so.0 -o libhello.so.0.0.1
+    +
+    root@49efe8bedaf4:/jerry/learn/hello# ls
+    hello.c  hello.h  libhello.so.0.0.1  main  main.c
+    +
+    root@49efe8bedaf4:/jerry/learn/hello# ldconfig -n . 
+    root@49efe8bedaf4:/jerry/learn/hello# ls
+    hello.c  hello.h  libhello.so.0  libhello.so.0.0.1  main  main.c
+        | 
+        +---这个软链接是如何生成的呢，并不是截取libhello.so.0.0.1名字的前面部分，而是根据libhello.so.0.0.1编译时指定的-soname生成的。也就是说我们在编译动态库时通过-soname指定的名字，已经记载到了动态库的二进制数据里面。不管程序是否按libxxx.so.a.b.c格式命名，但Linux上几乎所有动态库在编译时都指定了-soname
+    +
+    root@49efe8bedaf4:/jerry/learn/hello# gcc main.c -L. -lhello -o main
+    /usr/bin/ld: cannot find -lhello
+    collect2: error: ld returned 1 exit status
+    + 
+    ln -s libhello.so.0 libhello.so
+    +
+    gcc main.c -L. -lhello -o main
+    +
+    root@49efe8bedaf4:/jerry/learn/hello# gcc main.c -L. -lhello -o main
+    root@49efe8bedaf4:/jerry/learn/hello# ls -l
+    total 32
+    -rw-r--r-- 1 root root   84 Dec  6 08:33 hello.c
+    -rw-r--r-- 1 root root   69 Dec  6 08:32 hello.h
+    lrwxrwxrwx 1 root root   13 Dec 10 07:11 libhello.so -> libhello.so.0
+    lrwxrwxrwx 1 root root   17 Dec 10 07:07 libhello.so.0 -> libhello.so.0.0.1
+    -rwxr-xr-x 1 root root 7904 Dec 10 07:06 libhello.so.0.0.1
+    -rwxr-xr-x 1 root root 8288 Dec 10 07:12 main
+    -rw-r--r-- 1 root root   73 Dec  6 08:34 main.c
+    +
+    root@49efe8bedaf4:/jerry/learn/hello# ldd main
+    linux-vdso.so.1 (0x00007ffdb1bfe000)
+    libhello.so.0 (0x00007f528eed4000)
+    libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f528eadc000)
+    /lib64/ld-linux-x86-64.so.2 (0x00007f528f2e4000)
+    +
+## 总结：在生成main程序的过程有如下几步:
+
+  1. 链接器通过编译命令-L. -lhello在当前目录查找libhello.so文件
+  2. 读取libhello.so链接指向的实际文件，这里是libhello.so.0.0.1
+  3. 读取libhello.so.0.0.1中的SONAME，这里是libhello.so.0
+  4. 将libhello.so.0记录到main程序的二进制数据里
 
 # Note
 
@@ -213,11 +218,11 @@
 
   4. ldconfig 可以自动生成soname 的连接文件。并提供catch 加速查找。
 
-  5.readelf 可以查看动态库的信息，比如依赖的库，本身的soname。
+  5. readelf 可以查看动态库的信息，比如依赖的库，本身的soname。
 
   6. objdump 与readelf 类似。
 
-  7 ld The GUN linker
+  7. ld The GUN linker
 
   8. ld.so  dynamic linker or loader
 
@@ -226,6 +231,7 @@
   10. libc.so.6 是c运行时库glibc的软链接，而系统几乎所有程序都依赖c运行时库。程序启动和运行时，是根据libc.so.6 软链接找到glibc库。
 
 # Q & A
+
 1. why soname?
 
     这个soname的存在是为了兼容方便。 
@@ -298,7 +304,9 @@
 
 
 # pkg-config
+
 [pkg-config的一些用法](https://blog.csdn.net/luotuo44/article/details/24836901)
+
     /home_nbu/jzhan107/projects/09/obj/linux_x86
     vi ./sde/opt/LU3P/lib/pkgconfig
     " ============================================================================
@@ -316,4 +324,14 @@
     xmlsec1-openssl.pc@
     xmlsec1.pc@
 
-    PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1 pkg-config --cflags /home_nbu/jzhan107/projects/09/obj/linux_x86/sde/opt/LU3P/lib/pkgconfig/libssl.pc
+    jzhan107@lsslogin1:/home_nbu/jzhan107/projects/08test/obj/linux_x86/sde/tpp/openssl/linux_x86/openssl-1.1.1>
+    $ pkg-config --cflags --libs openssl
+    sh: gnome-config: not found
+    Package openssl was not found in the pkg-config search path.
+    Perhaps you should add the directory containing `openssl.pc'
+    to the PKG_CONFIG_PATH environment variable
+    No package 'openssl' found
+
+    jzhan107@lsslogin1:/home_nbu/jzhan107/projects/08test/obj/linux_x86/sde/tpp/openssl/linux_x86/openssl-1.1.1>
+    $ export PKG_CONFIG_PATH=/home_nbu/jzhan107/projects/08test/obj/linux_x86/sde/tpp/openssl/linux_x86/openssl-1.1.1;pkg-config --cflags --libs openssl
+    -I/opt/LU3P/include  -L/opt/LU3P/lib -lssl -lcrypto
