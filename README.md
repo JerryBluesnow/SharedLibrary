@@ -244,34 +244,37 @@
     而在库升级后，我们重新：ln -sf libtest.so.2 libtest.so即可，这样ap1不需要任何变动就能享受升级后的库的特性了。而libtest.so.1,libtest.so.2可以同时存在于系统内，不必非得把libtest.so.2的名字改成libtest.so.1
    
     严格遵守上述规定，确实能避免动态库因为版本冲突的问题，但是读者可能有疑问：在程序加载或运行的时候，动态链接器是如何知道程序依赖哪些库，如何选择库的不同版本？
-    Solaris和Linux等采用SO-NAME( Shortfor shared object name )的命名机制来记录共享库的依赖关系。每个共享库都有一个对应的“SO-NAME”(共享库文件名去掉次版本号和    发布版本号)。比如一个共享库名为libtest.so.3.8.2,那么它的SO-NAME就是libtest.so.3。
+    Solaris和Linux等采用SO-NAME( Shortfor shared object name )的命名机制来记录共享库的依赖关系。每个共享库都有一个对应的“SO-NAME”(共享库文件名去掉次版本号和发布版本号)。比如一个共享库名为libtest.so.3.8.2,那么它的SO-NAME就是libtest.so.3。
 
     在Linux系统中，系统会为每个共享库所在的目录创建一个跟SO-NAME相同的并且指向它的软连接(Symbol Link)。这个软连接会指向目录中主版本号相同、次版本号和发布版本号 最新的共享库。也就是说，比如目录中有两个共享库版本分别为：/lib/libtest.so.3.8.2和/lib/libtest.so.3.7.5,么软连接/lib/libtest.so.3指向 /lib/libtest.so.3.8.2。
 
-    建立以SO-NAME为名字的软连接的目的是，使得所有依赖某个共享库的模块，在编译、链接和运行时，都使用共享库的SO-NAME，而不需要使用详细版本号。在编译生产ELF文件时 候，如果文件A依赖于文件B，那么A的链接文件中的”.dynamic”段中会有DT_NEED类型的字段，字段的值就是B的SO-NAME。这样当动态链接器进行共享库依赖文件查找时，就会依   据系统中各种共享库目录中的SO-NAME软连接自动定向到最新兼容版本的共享库。
+    建立以SO-NAME为名字的软连接的目的是，使得所有依赖某个共享库的模块，在编译、链接和运行时，都使用共享库的SO-NAME，而不需要使用详细版本号。在编译生产ELF文件时候，如果文件A依赖于文件B，那么A的链接文件中的”.dynamic”段中会有DT_NEED类型的字段，字段的值就是B的SO-NAME。这样当动态链接器进行共享库依赖文件查找时，就会依   据系统中各种共享库目录中的SO-NAME软连接自动定向到最新兼容版本的共享库。
 
     ★  readelf -d sharelibrary 可以查看so-name
-    ★  Linux提供了一个工具——ldconfig，当系统中安装或更新一个共享库时，需要运行这个工具，它会遍历默认所有共享库目录，比如/lib，/usr/lib等，然后更新所有的软链    接，使她们指向最新共享库。
+    ★  Linux提供了一个工具——ldconfig，当系统中安装或更新一个共享库时，需要运行这个工具，它会遍历默认所有共享库目录，比如/lib，/usr/lib等，然后更新所有的软链接，使她们指向最新共享库。
 
 2. 如果采用带版本号的库,例如libhello.so.2
 
     链接命令可使用g++ main.cpp libhello.so.2 -L./ -Wl,-rpath=./ -o main
 
 3. 为什么这里ldd查看main显示libhello.so.0为not found呢，
+    
     因为ldd是从环境变量$LD_LIBRARY_PATH指定的路径里来查找文件的
 
 4.  libtest.so.0是not found的状态。
-    为什么呢？因为这个库的当前所在路径并不在链接程序（ld.so)的搜索路径之中，所以无法找到。如何解决？这篇文章就不多说了，这里提供 几个方案：
+    
+    为什么呢？因为这个库的当前所在路径并不在链接程序（ld.so)的搜索路径之中，所以无法找到。如何解决？几个方案：
 
     a. 改变LD_LIBRARY_PATH
 
     export LD_LIBRARY_PATH=/home/bow/all/program/test/lib_version_test:$LD_LIBRARY_PATH
 
-    这里/home/bow/all/program/test/lib_version_test是共享库的路径。虽然改变LD_LIBRARY_PATH能达到目的，但是不推荐使用，因为这是一个全局的变量，其他应用程序可    能受此影响，导致各种库的覆盖问题。如果要清楚这个全局变量，使用命令unset LD_LIBRARY_PATH
+    这里/home/bow/all/program/test/lib_version_test是共享库的路径。虽然改变LD_LIBRARY_PATH能达到目的，但是不推荐使用，因为这是一个全局的变量，其他应用程序可能受此影响，导致各种库的覆盖问题。
+    如果要清除这个全局变量，使用命令unset LD_LIBRARY_PATH
 
     b. 用rpath
 
-    在编译应用程序时，利用rpath指定加载路径。 gcc -L. -Wl,-rpath=/home/bow/all/program/test/lib_version_test -o test main.o -ltest 这样，虽然避免了各种路   径找不到的问题，但是也失去了灵活性。因为库的路径被定死了。
+    在编译应用程序时，利用rpath指定加载路径。 gcc -L. -Wl,-rpath=/home/bow/all/program/test/lib_version_test -o test main.o -ltest 这样，虽然避免了各种路径找不到的问题，但是也失去了灵活性。因为库的路径被定死了。
 
     c. 改变ld.so.conf
 
@@ -279,11 +282,14 @@
 
 5. 应用程序在编译链接和运行加载时，库的搜索路径的先后顺序。
 
-    编译链接时，查找顺序
+##### 编译链接时，查找顺序
+    
     /usr/local/lib
     /usr/lib
     用-L指定的路径，按命令行里面的顺序依次查找
-    运行加载时的顺序
+
+##### 运行加载时的顺序
+    
     可执行程序指定的的DT_RPATH
     LD_LIBRARY_PATH. 但是如果使用了setuid/setgid，由于安全因素，此路径将被忽略.
     可执行程序指定的的DT_RUNPATH. 但是如果使用了setuid/setgid，由于安全因素，此路径将被忽略
@@ -291,11 +297,14 @@
     /lib. 如果链接时指定了‘-z nodeflib’，此路径将被忽略
     /usr/lib. 如果链接时指定了‘-z nodeflib’，此路径将被忽略
    
-    3.3.1 静态库链接时搜索路径顺序
+##### 静态库链接时搜索路径顺序
+    
     ld会去找GCC命令行中的参数-L的目录中是否有该静态库；
     再去找GCC的环境变量LIBRARY_PATH
     再找内定目录/lib、/usr/lib、/usr/local/lib夏是否有该链接库，这是当初compile gcc的时候确定的
-    3.3.2 动态库链接时、执行时搜索路径顺序
+
+##### 动态库链接时、执行时搜索路径顺序
+   
     编译目标代码时指定的动态库搜索路径；
     环境变量LD_LIBRARY_PATH指定的动态库搜索路径；
     配置文件/etc/ld.so.conf中指定的动态库搜索路径；
@@ -335,3 +344,80 @@
     jzhan107@lsslogin1:/home_nbu/jzhan107/projects/08test/obj/linux_x86/sde/tpp/openssl/linux_x86/openssl-1.1.1>
     $ export PKG_CONFIG_PATH=/home_nbu/jzhan107/projects/08test/obj/linux_x86/sde/tpp/openssl/linux_x86/openssl-1.1.1;pkg-config --cflags --libs openssl
     -I/opt/LU3P/include  -L/opt/LU3P/lib -lssl -lcrypto
+
+
+# Comiler Order
+
+## Reference for Compiler Order
+
+[linux中动态链接库的搜索顺序](http://blog.sina.com.cn/s/blog_5ac88b350100bdd8.html)
+
+
+1. in our system build directory, we can not run ldd 
+    
+    jzhan107@lsslogin1:/fs_nbu/umtsbld/R3708.00/obj/linux_x86-64/ssp>
+    $ ldd ./linux_x86-64/opt/lucent/apps/bin/ngss
+    ldd: ./linux_x86-64/opt/lucent/apps/bin/ngss: ELF machine type: EM_AMD64: is incompatible with system
+
+2. try readelf -d 
+    
+    jzhan107@lsslogin1:/fs_nbu/umtsbld/R3708.00/obj/linux_x86-64/ssp>
+    readelf -d ./linux_x86-64/opt/lucent/apps/bin/XXXX
+    ynamic section at offset 0x36c6ca0 contains 46 entries:
+     Tag        Type                         Name/Value
+    0x0000000000000001 (NEEDED)             Shared library: [libcrypto.so.1.0.0]
+    0x0000000000000001 (NEEDED)             Shared library: [libdl.so.2]
+    0x0000000000000001 (NEEDED)             Shared library: [libssl.so.1.0.0]
+    0x0000000000000001 (NEEDED)             Shared library: [libldap-2.4.so.2]
+    0x0000000000000001 (NEEDED)             Shared library: [libsasl2.so.3]
+    0x0000000000000001 (NEEDED)             Shared library: [liblber-2.4.so.2]
+    0x0000000000000001 (NEEDED)             Shared library: [libhiredis.so.0.13]
+    0x0000000000000001 (NEEDED)             Shared library: [libboost_system.so.1.61.0]
+    0x0000000000000001 (NEEDED)             Shared library: [libdbwrapper.so.2]
+    0x0000000000000001 (NEEDED)             Shared library: [libexpat.so.1]
+    0x0000000000000001 (NEEDED)             Shared library: [libprotobuf-lite.so.10]
+    0x0000000000000001 (NEEDED)             Shared library: [libprotobuf.so.10]
+    0x0000000000000001 (NEEDED)             Shared library: [libprotoc.so.10]
+    0x0000000000000001 (NEEDED)             Shared library: [libsctp.so.1]
+    0x0000000000000001 (NEEDED)             Shared library: [librt.so.1]
+    0x0000000000000001 (NEEDED)             Shared library: [libresolv.so.2]
+    0x0000000000000001 (NEEDED)             Shared library: [libpthread.so.0]
+    0x0000000000000001 (NEEDED)             Shared library: [libz.so.1]
+    0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]
+    0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]
+    0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]
+    0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
+    0x000000000000000f (RPATH)              Library rpath: [/opt/LU3P/lib64]
+    0x000000000000000c (INIT)               0x1008a100
+    0x000000000000000d (FINI)               0x12a753d0
+    0x0000000000000019 (INIT_ARRAY)         0x136a9cd8
+    0x000000000000001b (INIT_ARRAYSZ)       1720 (bytes)
+    0x000000000000001a (FINI_ARRAY)         0x136aa390
+    0x000000000000001c (FINI_ARRAYSZ)       8 (bytes)
+    0x000000006ffffef5 (GNU_HASH)           0x13259208
+    0x0000000000000005 (STRTAB)             0x1002fc90
+    0x0000000000000006 (SYMTAB)             0x10000260
+    0x000000000000000a (STRSZ)              336888 (bytes)
+    0x000000000000000b (SYMENT)             24 (bytes)
+    0x0000000000000015 (DEBUG)              0x0
+    0x0000000000000003 (PLTGOT)             0x138c75f8
+    0x0000000000000002 (PLTRELSZ)           14064 (bytes)
+    0x0000000000000014 (PLTREL)             RELA
+    0x0000000000000017 (JMPREL)             0x10086a10
+    0x0000000000000007 (RELA)               0x10086260
+    0x0000000000000008 (RELASZ)             1968 (bytes)
+    0x0000000000000009 (RELAENT)            24 (bytes)
+    0x000000006ffffffe (VERNEED)            0x10086010
+    0x000000006fffffff (VERNEEDNUM)         9
+    0x000000006ffffff0 (VERSYM)             0x10082088
+    0x0000000000000000 (NULL)               0x0
+
+3. Linux系统下连接器ld链接顺序的总结
+
+  + 库的加载顺序是按顺序进行的，从左到右，优先级最高
+
+  + 可以使用nm和readelf、ldd等命令来查看你的库的依赖和符号表以及导出的函数符号等
+
+  + 如果有多个库，使用了相同的函数名或者类名，结构体名称会怎么样？
+    
+    
