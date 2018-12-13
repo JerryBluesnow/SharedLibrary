@@ -25,6 +25,7 @@
 # 3. Interpretation
 
 ##  ELF文件格式包括三种主要的类型：可执行文件、可重定向文件、共享库。
+
     1．可执行文件（应用程序）
 
     可执行文件包含了代码和数据，是可以直接运行的程序。
@@ -361,56 +362,7 @@
 
 2. try readelf -d 
     
-    jzhan107@lsslogin1:/fs_nbu/umtsbld/R3708.00/obj/linux_x86-64/ssp>
-    readelf -d ./linux_x86-64/opt/lucent/apps/bin/XXXX
-    ynamic section at offset 0x36c6ca0 contains 46 entries:
-     Tag        Type                         Name/Value
-    0x0000000000000001 (NEEDED)             Shared library: [libcrypto.so.1.0.0]
-    0x0000000000000001 (NEEDED)             Shared library: [libdl.so.2]
-    0x0000000000000001 (NEEDED)             Shared library: [libssl.so.1.0.0]
-    0x0000000000000001 (NEEDED)             Shared library: [libldap-2.4.so.2]
-    0x0000000000000001 (NEEDED)             Shared library: [libsasl2.so.3]
-    0x0000000000000001 (NEEDED)             Shared library: [liblber-2.4.so.2]
-    0x0000000000000001 (NEEDED)             Shared library: [libhiredis.so.0.13]
-    0x0000000000000001 (NEEDED)             Shared library: [libboost_system.so.1.61.0]
-    0x0000000000000001 (NEEDED)             Shared library: [libdbwrapper.so.2]
-    0x0000000000000001 (NEEDED)             Shared library: [libexpat.so.1]
-    0x0000000000000001 (NEEDED)             Shared library: [libprotobuf-lite.so.10]
-    0x0000000000000001 (NEEDED)             Shared library: [libprotobuf.so.10]
-    0x0000000000000001 (NEEDED)             Shared library: [libprotoc.so.10]
-    0x0000000000000001 (NEEDED)             Shared library: [libsctp.so.1]
-    0x0000000000000001 (NEEDED)             Shared library: [librt.so.1]
-    0x0000000000000001 (NEEDED)             Shared library: [libresolv.so.2]
-    0x0000000000000001 (NEEDED)             Shared library: [libpthread.so.0]
-    0x0000000000000001 (NEEDED)             Shared library: [libz.so.1]
-    0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]
-    0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]
-    0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]
-    0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
-    0x000000000000000f (RPATH)              Library rpath: [/opt/LU3P/lib64]
-    0x000000000000000c (INIT)               0x1008a100
-    0x000000000000000d (FINI)               0x12a753d0
-    0x0000000000000019 (INIT_ARRAY)         0x136a9cd8
-    0x000000000000001b (INIT_ARRAYSZ)       1720 (bytes)
-    0x000000000000001a (FINI_ARRAY)         0x136aa390
-    0x000000000000001c (FINI_ARRAYSZ)       8 (bytes)
-    0x000000006ffffef5 (GNU_HASH)           0x13259208
-    0x0000000000000005 (STRTAB)             0x1002fc90
-    0x0000000000000006 (SYMTAB)             0x10000260
-    0x000000000000000a (STRSZ)              336888 (bytes)
-    0x000000000000000b (SYMENT)             24 (bytes)
-    0x0000000000000015 (DEBUG)              0x0
-    0x0000000000000003 (PLTGOT)             0x138c75f8
-    0x0000000000000002 (PLTRELSZ)           14064 (bytes)
-    0x0000000000000014 (PLTREL)             RELA
-    0x0000000000000017 (JMPREL)             0x10086a10
-    0x0000000000000007 (RELA)               0x10086260
-    0x0000000000000008 (RELASZ)             1968 (bytes)
-    0x0000000000000009 (RELAENT)            24 (bytes)
-    0x000000006ffffffe (VERNEED)            0x10086010
-    0x000000006fffffff (VERNEEDNUM)         9
-    0x000000006ffffff0 (VERSYM)             0x10082088
-    0x0000000000000000 (NULL)               0x0
+   ![readelf -d ngss](./images/readelf_ngss.png)
 
 3. Linux系统下连接器ld链接顺序的总结
 
